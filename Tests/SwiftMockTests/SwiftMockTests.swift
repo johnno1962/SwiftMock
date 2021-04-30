@@ -41,18 +41,17 @@ final class SwiftMockTests: XCTestCase {
         guard let myImage = DLKit.imageMap["SwiftMockTests"] else {
             return XCTFail("Could not locate image")
         }
+        XCTAssertEqual(myImage, DLKit.selfImage)
 
         XCTAssertEqual(OriginalStruct().f(), originalValue)
         XCTAssertEqual(OriginalStruct().v, originalValue)
-        SwiftMock.pose(MockedStruct.self, as: OriginalStruct.self,
-                       image: myImage)
+        SwiftMock.pose(MockedStruct.self, as: OriginalStruct.self)
         XCTAssertEqual(OriginalStruct().f(), mockedValue)
         XCTAssertEqual(OriginalStruct().v, mockedValue)
 
         XCTAssertEqual(OriginalClass().f(), originalValue)
         XCTAssertEqual(OriginalClass().v, originalValue)
-        SwiftMock.pose(MockedClass.self, as: OriginalClass.self,
-                       image: myImage)
+        SwiftMock.pose(MockedClass.self, as: OriginalClass.self)
         XCTAssertEqual(OriginalClass().f(), mockedValue)
         XCTAssertEqual(OriginalClass().v, mockedValue)
     }

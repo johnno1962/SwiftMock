@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 29/04/2021.
 //  Copyright © 2017 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/SwiftMock/Sources/SwiftMock/SwiftMock.swift#3 $
+//  $Id: //depot/SwiftMock/Sources/SwiftMock/SwiftMock.swift#6 $
 //
 
 import Foundation
@@ -13,32 +13,33 @@ import EasyPointer
 import DLKit
 
 struct SwiftMock {
-    static func pose(_ poser: Any.Type, as posee: Any.Type,
-                     image: ImageSymbols = DLKit.mainImage) {
+    static func pose(_ poser: Any.Type, as posee: Any.Type) {
         let poserPrefix = _typeName(poser)+"."
         let poseePrefix = _typeName(posee)+"."
         var symbols = [SymbolName]()
         var posers = [UnsafeMutableRawPointer]()
         var replaced = [String: UnsafeMutableRawPointer]()
 
-        for (name, _, entry) in image
-            where entry.pointee.n_sect != 0 {
-            if let oldSwift = name.demangled,
-                oldSwift.hasPrefix(poseePrefix) {
-                let newSwift = oldSwift.replacingOccurrences(of:
-                    poseePrefix, with: poserPrefix)
-                if let replacement = image
-                    .mangle(swift: newSwift)?.value,
-                   !newSwift.hasSuffix("deinit") {
-//                    print(oldSwift, newSwift, replacement)
-                    symbols.append(name)
-                    posers.append(replacement)
-                    replaced[String(cString: name)] = replacement
+        for image in DLKit.allImages.imageList {
+            for (name, _, entry) in image.swiftSymbols()
+                where entry.pointee.n_sect != 0 {
+                if let oldSwift = name.demangled,
+                    oldSwift.hasPrefix(poseePrefix) {
+                    let newSwift = oldSwift.replacingOccurrences(of:
+                        poseePrefix, with: poserPrefix)
+                    if let replacement = image
+                        .mangle(swift: newSwift)?.value,
+                       !newSwift.hasSuffix("deinit") {
+//                        print(oldSwift, newSwift, replacement)
+                        symbols.append(name)
+                        posers.append(replacement)
+                        replaced[String(cString: name)] = replacement
+                    }
                 }
             }
         }
 
-        image[symbols] = posers
+        DLKit.allImages[symbols] = posers
 
         guard let poseeClass = posee as? AnyClass else { return }
 
@@ -53,8 +54,9 @@ struct SwiftMock {
 
         for slotIndex in 0..<(vtableEnd - vtableStart) {
             if let existing = vtableStart[slotIndex],
-               let symname = image[UnsafeMutableRawPointer(mutating: existing)],
-                let replacement = replaced[String(cString: symname.name)] {
+                let symbol = DLKit.allImages[
+                    UnsafeMutableRawPointer(mutating: existing)],
+                let replacement = replaced[String(cString: symbol.name)] {
                 vtableStart[slotIndex] = UnsafeRawPointer(replacement)
             }
         }
